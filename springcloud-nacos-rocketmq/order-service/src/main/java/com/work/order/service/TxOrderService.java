@@ -24,6 +24,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.apache.rocketmq.client.producer.TransactionSendResult;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.apache.rocketmq.spring.support.RocketMQHeaders;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.stereotype.Service;
@@ -51,7 +52,10 @@ public class TxOrderService {
     private OrderDAO orderDAO;
     @Resource
     RocketMQTemplate rocketMQTemplate;
+    @Resource
+    RedisTemplate<String, Object> redisTemplate;
     public static final String TOPIC = "order-tx-RMQ_TOPIC";
+    public static final String rediskey = "order-key:";
 
     /**
      * 下单：创建订单、减库存，涉及到两个服务
@@ -85,7 +89,7 @@ public class TxOrderService {
         BigDecimal orderMoney = new BigDecimal(order.getCount()).multiply(new BigDecimal(5));
         order.setMoney(orderMoney);
         orderDAO.insert(order);
-
+        redisTemplate.opsForValue().set(rediskey+order.getOrderNo(), JSON.toJSONString(order), 5000L);
     }
 
 }

@@ -26,6 +26,7 @@
         <maven-surefire-plugin.version>2.22.1</maven-surefire-plugin.version>
         <rocketmq.version>4.9.6-SNAPSHOT</rocketmq.version>
         <mybatis-plus-boot-starter.version>3.3.0</mybatis-plus-boot-starter.version>
+        <redisson-starter.version>3.15.1</redisson-starter.version>
     </properties>
 
     <dependencies>
@@ -67,6 +68,17 @@
         </dependency>
         <!-- mybatis -->
 
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-redis</artifactId>
+        </dependency>
+
+        <!-- 在Redis基础上的一个Java实用工具包 -->
+        <dependency>
+            <groupId>org.redisson</groupId>
+            <artifactId>redisson-spring-boot-starter</artifactId>
+        </dependency>
+
         <!--mybatis-generator-->
         <dependency>
             <groupId>org.mybatis.generator</groupId>
@@ -95,17 +107,18 @@
             <groupId>org.apache.commons</groupId>
             <artifactId>commons-lang3</artifactId>
         </dependency>
-        <dependency>
-            <groupId>cn.hutool</groupId>
-            <artifactId>hutool-all</artifactId>
-            <version>5.8.15</version>
-        </dependency>
 
         <!--feign-->
         <dependency>
             <groupId>org.springframework.cloud</groupId>
             <artifactId>spring-cloud-starter-openfeign</artifactId>
             <version>2.2.6.RELEASE</version>
+        </dependency>
+
+        <dependency>
+            <groupId>cn.hutool</groupId>
+            <artifactId>hutool-all</artifactId>
+            <version>5.8.15</version>
         </dependency>
 
     </dependencies>
@@ -154,6 +167,13 @@
                 <groupId>com.alibaba.spring</groupId>
                 <artifactId>spring-context-support</artifactId>
                 <version>1.0.11</version>
+            </dependency>
+
+            <!-- 在Redis基础上的一个Java实用工具包 -->
+            <dependency>
+                <groupId>org.redisson</groupId>
+                <artifactId>redisson-spring-boot-starter</artifactId>
+                <version>${redisson-starter.version}</version>
             </dependency>
 
         </dependencies>

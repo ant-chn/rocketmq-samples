@@ -1,0 +1,100 @@
+@Configuration
+public class RedisConfig {
+ 
+    @Value("${spring.redis.host}")
+    private String host;
+ 
+    @Value("${spring.redis.port}")
+    private int port;
+ 
+    @Value("${spring.redis.password}")
+    private String password;
+ 
+    @Bean(destroyMethod = "shutdown")
+    RedissonClient redisson() throws IOException {
+        Config config = new Config();
+        config.useClusterServers()
+            .addNodeAddress("redis://127.0.0.1:7000")
+            .addNodeAddress("redis://127.0.0.1:7001")
+            .addNodeAddress("redis://127.0.0.1:7002")
+            .setLockWatchdogTimeout(5000)
+            .setLockTimeout(10000)
+            .setFairLock(true)
+            .setReadWriteLockDowngradeAllowed(false)
+            .setSingleServerConfig(new SingleServerConfig().setAddress("redis://" + host + ":" + port).setPassword(password))
+            .addLockConfig(new LockConfig("lockName").setQuorumSize(2).setConcurrencyLevel(4));
+        return Redisson.create(config);
+
+        
+
+    }
+}
+
+
+
+@Service
+public class InventoryService {
+
+    @Autowired
+    private RedissonClient redissonClient;
+
+    private final int concurrency = 4;
+    private final int permits = 100;
+    private final String segmentPrefix = "inventorySegment:";
+    private final long initialStock = 1000;
+
+    @Lock("inventoryLock")
+    public boolean checkInventory(String productId, int quantity) {
+        // 获取商品库存
+        RAtomicLong stockAtomic = redissonClient.getAtomicLong(productId);
+        long stock = stockAtomic.get();
+        if (stock > 0) {
+            // 检查库存是否足够
+            if (stock >= quantity) {
+                // 减少库存
+                stockAtomic.addAndGet(-quantity);
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            // 重新初始化分段
+            initSegments(productId);
+            // 再次检查库存是否足够
+            stock = stockAtomic.get();
+            if (stock >= quantity) {
+                // 减少库存
+                stockAtomic.addAndGet(-quantity);
+                return true;
+            } else {
+                return false;
+            }
+        }
+    }
+
+    private void initSegments(String productId) {
+        // 获取分段锁
+        RLock lock = redissonClient.getLock("initSegmentLock");
+        lock.lock();
+        try {
+            // 检查库存是否为0
+            RAtomicLong stockAtomic = redissonClient.getAtomicLong(productId);
+            long stock = stockAtomic.get();
+            if (stock > 0) {
+                return;
+            }
+            // 释放分段锁资源
+            for (int i = 0; i < concurrency; i++) {
+                String segmentName = segmentPrefix + i;
+                RPermitExpirableSemaphore semaphore = redissonClient.getPermitExpirableSemaphore(segmentName);
+                semaphore.release(permits);
+            }
+            // 重新设置商品库存
+            stockAtomic.set(initialStock);
+        } finally {
+            // 释放分段锁
+            lock.unlock();
+        }
+    }
+
+}

@@ -19,8 +19,10 @@ import javax.annotation.Resource;
 @Component
 @RocketMQMessageListener(consumerGroup = "stock-tx-consume-group", topic = "order-tx-RMQ_TOPIC")
 public class StockRMQListener implements RocketMQListener<String> {
+
     @Resource
     private StockService stockService;
+
 
     @Override
     public void onMessage(String msg) {
